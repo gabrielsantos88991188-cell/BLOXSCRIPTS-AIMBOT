@@ -1,0 +1,779 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
+
+--==================================================
+-- CONFIGURAÇÕES
+--==================================================
+
+local AimEnabled = false
+local ESPEnabled = false
+
+local FOVSize = 150
+local Precision = 70
+
+local ScriptClosed = false
+
+--==================================================
+-- GUI PRINCIPAL
+--==================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "BloxScripts"
+Gui.ResetOnSpawn = false
+Gui.Parent = PlayerGui
+
+--==================================================
+-- JANELA
+--==================================================
+
+local Window = Instance.new("Frame")
+Window.Name = "Window"
+Window.Size = UDim2.fromOffset(520,330)
+Window.Position = UDim2.new(0.5,-260,0.5,-165)
+Window.BackgroundColor3 = Color3.fromRGB(16,16,22)
+Window.BorderSizePixel = 0
+Window.Parent = Gui
+
+local WindowCorner = Instance.new("UICorner")
+WindowCorner.CornerRadius = UDim.new(0,12)
+WindowCorner.Parent = Window
+
+--==================================================
+-- TÍTULO
+--==================================================
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,-130,0,48)
+Title.Position = UDim2.fromOffset(18,0)
+Title.BackgroundTransparency = 1
+Title.Text = "BLOXSCRIPTS"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextSize = 17
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Window
+
+--==================================================
+-- BOTÃO MINIMIZAR
+--==================================================
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = "Minimize"
+Minimize.Size = UDim2.fromOffset(38,38)
+Minimize.Position = UDim2.new(1,-88,0,5)
+Minimize.BackgroundColor3 = Color3.fromRGB(55,55,65)
+Minimize.BorderSizePixel = 0
+Minimize.Text = "—"
+Minimize.TextColor3 = Color3.new(1,1,1)
+Minimize.TextSize = 18
+Minimize.Font = Enum.Font.GothamBold
+Minimize.Parent = Window
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0,8)
+MinCorner.Parent = Minimize
+
+--==================================================
+-- BOTÃO X
+--==================================================
+
+local Close = Instance.new("TextButton")
+Close.Name = "Close"
+Close.Size = UDim2.fromOffset(38,38)
+Close.Position = UDim2.new(1,-44,0,5)
+Close.BackgroundColor3 = Color3.fromRGB(190,35,40)
+Close.BorderSizePixel = 0
+Close.Text = "X"
+Close.TextColor3 = Color3.new(1,1,1)
+Close.TextSize = 16
+Close.Font = Enum.Font.GothamBold
+Close.Parent = Window
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0,8)
+CloseCorner.Parent = Close
+
+--==================================================
+-- SIDEBAR
+--==================================================
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0,125,1,-58)
+Sidebar.Position = UDim2.fromOffset(10,52)
+Sidebar.BackgroundColor3 = Color3.fromRGB(20,20,27)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Window
+
+local SideCorner = Instance.new("UICorner")
+SideCorner.CornerRadius = UDim.new(0,9)
+SideCorner.Parent = Sidebar
+
+local function CreateSideButton(text,y)
+
+	local Button = Instance.new("TextButton")
+
+	Button.Size = UDim2.new(1,-12,0,40)
+	Button.Position = UDim2.fromOffset(6,y)
+
+	Button.BackgroundColor3 =
+		Color3.fromRGB(43,43,53)
+
+	Button.BorderSizePixel = 0
+
+	Button.Text = text
+	Button.TextColor3 = Color3.new(1,1,1)
+	Button.TextSize = 13
+	Button.Font = Enum.Font.GothamMedium
+
+	Button.Parent = Sidebar
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0,7)
+	Corner.Parent = Button
+
+	return Button
+end
+
+local MainButton = CreateSideButton("⚙ MAIN",10)
+local DiscordButton = CreateSideButton("💬 DISCORD",58)
+
+--==================================================
+-- ÁREA DE CONTEÚDO
+--==================================================
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1,-150,1,-58)
+Content.Position = UDim2.fromOffset(140,52)
+Content.BackgroundTransparency = 1
+Content.Parent = Window
+
+--==================================================
+-- FOV
+--==================================================
+
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+FOVCircle.AnchorPoint = Vector2.new(0.5,0.5)
+FOVCircle.Position = UDim2.fromScale(0.5,0.5)
+FOVCircle.Size = UDim2.fromOffset(FOVSize*2,FOVSize*2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+FOVCircle.ZIndex = 10
+FOVCircle.Parent = Gui
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Thickness = 2
+FOVStroke.Color = Color3.fromRGB(255,255,255)
+FOVStroke.Parent = FOVCircle
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1,0)
+FOVCorner.Parent = FOVCircle
+
+local function UpdateFOV()
+
+	if FOVCircle and FOVCircle.Parent then
+		FOVCircle.Size =
+			UDim2.fromOffset(FOVSize*2,FOVSize*2)
+	end
+
+end
+
+--==================================================
+-- ESP
+--==================================================
+
+local function RemoveESP(PlayerTarget)
+
+	if not PlayerTarget.Character then
+		return
+	end
+
+	local ESP =
+		PlayerTarget.Character:FindFirstChild("BloxScriptsESP")
+
+	if ESP then
+		ESP:Destroy()
+	end
+
+end
+
+local function AddESP(PlayerTarget)
+
+	if PlayerTarget == Player then
+		return
+	end
+
+	if not ESPEnabled then
+		return
+	end
+
+	local Character = PlayerTarget.Character
+
+	if not Character then
+		return
+	end
+
+	RemoveESP(PlayerTarget)
+
+	local Highlight = Instance.new("Highlight")
+
+	Highlight.Name = "BloxScriptsESP"
+	Highlight.Adornee = Character
+
+	Highlight.FillColor =
+		Color3.fromRGB(255,0,0)
+
+	Highlight.OutlineColor =
+		Color3.fromRGB(255,255,255)
+
+	Highlight.FillTransparency = 0.45
+	Highlight.OutlineTransparency = 0
+
+	-- ATRAVESSA PAREDES
+	Highlight.DepthMode =
+		Enum.HighlightDepthMode.AlwaysOnTop
+
+	Highlight.Parent = Character
+
+end
+
+local function UpdateESP()
+
+	for _,PlayerTarget in ipairs(Players:GetPlayers()) do
+
+		if PlayerTarget ~= Player then
+
+			if ESPEnabled then
+				AddESP(PlayerTarget)
+			else
+				RemoveESP(PlayerTarget)
+			end
+
+		end
+
+	end
+
+end
+
+-- Novos jogadores
+Players.PlayerAdded:Connect(function(PlayerTarget)
+
+	PlayerTarget.CharacterAdded:Connect(function()
+
+		task.wait(0.5)
+
+		if ESPEnabled then
+			AddESP(PlayerTarget)
+		end
+
+	end)
+
+end)
+
+-- Jogadores que já estão no servidor
+for _,PlayerTarget in ipairs(Players:GetPlayers()) do
+
+	if PlayerTarget ~= Player then
+
+		PlayerTarget.CharacterAdded:Connect(function()
+
+			task.wait(0.5)
+
+			if ESPEnabled then
+				AddESP(PlayerTarget)
+			end
+
+		end)
+
+	end
+
+end
+
+--==================================================
+-- LIMPAR CONTEÚDO
+--==================================================
+
+local function ClearContent()
+
+	for _,Object in ipairs(Content:GetChildren()) do
+		Object:Destroy()
+	end
+
+end
+
+--==================================================
+-- BOTÕES DO MAIN
+--==================================================
+
+local function CreateMainButton(Text,Y)
+
+	local Button = Instance.new("TextButton")
+
+	Button.Size = UDim2.new(1,-20,0,38)
+	Button.Position = UDim2.fromOffset(10,Y)
+
+	Button.BackgroundColor3 =
+		Color3.fromRGB(43,43,53)
+
+	Button.BorderSizePixel = 0
+
+	Button.Text = Text
+	Button.TextColor3 = Color3.new(1,1,1)
+	Button.TextSize = 13
+	Button.Font = Enum.Font.GothamMedium
+
+	Button.Parent = Content
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0,7)
+	Corner.Parent = Button
+
+	return Button
+
+end
+
+--==================================================
+-- ABA MAIN
+--==================================================
+
+local function ShowMain()
+
+	ClearContent()
+
+	local MainTitle = Instance.new("TextLabel")
+
+	MainTitle.Size = UDim2.new(1,-20,0,30)
+	MainTitle.Position = UDim2.fromOffset(10,5)
+
+	MainTitle.BackgroundTransparency = 1
+
+	MainTitle.Text = "MAIN"
+	MainTitle.TextColor3 = Color3.new(1,1,1)
+	MainTitle.TextSize = 18
+	MainTitle.Font = Enum.Font.GothamBold
+
+	MainTitle.TextXAlignment =
+		Enum.TextXAlignment.Left
+
+	MainTitle.Parent = Content
+
+	-- AIM
+
+	local AimButton = CreateMainButton(
+
+		AimEnabled
+		and "🎯 AIM ASSIST: ON"
+		or "🎯 AIM ASSIST: OFF",
+
+		42
+	)
+
+	AimButton.Activated:Connect(function()
+
+		AimEnabled = not AimEnabled
+
+		AimButton.Text = AimEnabled
+		and "🎯 AIM ASSIST: ON"
+		or "🎯 AIM ASSIST: OFF"
+
+		-- O FOV aparece mesmo minimizado
+		FOVCircle.Visible = AimEnabled
+
+	end)
+
+	-- ESP
+
+	local ESPButton = CreateMainButton(
+
+		ESPEnabled
+		and "👁 ESP: ON"
+		or "👁 ESP: OFF",
+
+		88
+	)
+
+	ESPButton.Activated:Connect(function()
+
+		ESPEnabled = not ESPEnabled
+
+		ESPButton.Text = ESPEnabled
+		and "👁 ESP: ON"
+		or "👁 ESP: OFF"
+
+		UpdateESP()
+
+	end)
+
+	-- FOV
+
+	local FOVButton = CreateMainButton(
+		"⭕ FOV: "..FOVSize,
+		134
+	)
+
+	FOVButton.Activated:Connect(function()
+
+		FOVSize += 25
+
+		if FOVSize > 500 then
+			FOVSize = 50
+		end
+
+		UpdateFOV()
+
+		FOVButton.Text =
+			"⭕ FOV: "..FOVSize
+
+	end)
+
+	-- PRECISÃO
+
+	local PrecisionButton = CreateMainButton(
+		"🎯 PRECISÃO: "..Precision.."%",
+		180
+	)
+
+	PrecisionButton.Activated:Connect(function()
+
+		Precision += 10
+
+		if Precision > 100 then
+			Precision = 0
+		end
+
+		PrecisionButton.Text =
+			"🎯 PRECISÃO: "..Precision.."%"
+
+	end)
+
+end
+
+--==================================================
+-- ABA DISCORD
+--==================================================
+
+local function ShowDiscord()
+
+	ClearContent()
+
+	local DiscordTitle = Instance.new("TextLabel")
+
+	DiscordTitle.Size = UDim2.new(1,-20,0,30)
+	DiscordTitle.Position = UDim2.fromOffset(10,5)
+
+	DiscordTitle.BackgroundTransparency = 1
+
+	DiscordTitle.Text = "DISCORD"
+	DiscordTitle.TextColor3 = Color3.new(1,1,1)
+	DiscordTitle.TextSize = 18
+	DiscordTitle.Font = Enum.Font.GothamBold
+
+	DiscordTitle.Parent = Content
+
+	-- IMAGEM
+
+	local Image = Instance.new("ImageLabel")
+
+	Image.Size = UDim2.new(1,-20,0,145)
+	Image.Position = UDim2.fromOffset(10,42)
+
+	Image.BackgroundColor3 =
+		Color3.fromRGB(28,28,35)
+
+	Image.BorderSizePixel = 0
+
+	-- COLOQUE O ID DA SUA IMAGEM AQUI
+	Image.Image =
+		"rbxassetid://COLOQUE_O_ID_DA_IMAGEM_AQUI"
+
+	Image.ScaleType =
+		Enum.ScaleType.Crop
+
+	Image.Parent = Content
+
+	local ImageCorner = Instance.new("UICorner")
+	ImageCorner.CornerRadius = UDim.new(0,10)
+	ImageCorner.Parent = Image
+
+	-- NOME
+
+	local NameLabel = Instance.new("TextLabel")
+
+	NameLabel.Size = UDim2.new(1,-20,0,30)
+	NameLabel.Position = UDim2.fromOffset(10,192)
+
+	NameLabel.BackgroundTransparency = 1
+
+	NameLabel.Text = "BLOXSCRIPTS"
+
+	NameLabel.TextColor3 = Color3.new(1,1,1)
+	NameLabel.TextSize = 17
+	NameLabel.Font = Enum.Font.GothamBold
+
+	NameLabel.Parent = Content
+
+	-- LINK FIXO
+
+	local Link = Instance.new("TextLabel")
+
+	Link.Size = UDim2.new(1,-20,0,38)
+	Link.Position = UDim2.fromOffset(10,225)
+
+	Link.BackgroundColor3 =
+		Color3.fromRGB(43,43,53)
+
+	Link.BorderSizePixel = 0
+
+	Link.Text =
+		"https://discord.gg/PcEREjpb5"
+
+	Link.TextColor3 =
+		Color3.new(1,1,1)
+
+	Link.TextSize = 12
+	Link.Font = Enum.Font.Gotham
+
+	Link.TextXAlignment =
+		Enum.TextXAlignment.Center
+
+	Link.Parent = Content
+
+	local LinkCorner = Instance.new("UICorner")
+	LinkCorner.CornerRadius = UDim.new(0,8)
+	LinkCorner.Parent = Link
+
+end
+
+--==================================================
+-- TROCA DE ABAS
+--==================================================
+
+MainButton.Activated:Connect(function()
+
+	if not ScriptClosed then
+		ShowMain()
+	end
+
+end)
+
+DiscordButton.Activated:Connect(function()
+
+	if not ScriptClosed then
+		ShowDiscord()
+	end
+
+end)
+
+--==================================================
+-- MINIMIZAR
+--==================================================
+
+Minimize.Activated:Connect(function()
+
+	if ScriptClosed then
+		return
+	end
+
+	-- SOMENTE ESCONDE A JANELA
+	Window.Visible = false
+
+	-- AIM CONTINUA FUNCIONANDO
+	-- ESP CONTINUA FUNCIONANDO
+	-- FOV CONTINUA FUNCIONANDO
+
+	if AimEnabled then
+		FOVCircle.Visible = true
+	end
+
+end)
+
+--==================================================
+-- K = ABRIR
+--==================================================
+
+UserInputService.InputBegan:Connect(function(Input,GameProcessed)
+
+	if GameProcessed then
+		return
+	end
+
+	if Input.KeyCode == Enum.KeyCode.K then
+
+		if ScriptClosed then
+			return
+		end
+
+		-- K SOMENTE REABRE
+		Window.Visible = true
+
+		if AimEnabled then
+			FOVCircle.Visible = true
+		end
+
+		if ESPEnabled then
+			UpdateESP()
+		end
+
+	end
+
+end)
+
+--==================================================
+-- X = FECHAR ABSOLUTAMENTE TUDO
+--==================================================
+
+Close.Activated:Connect(function()
+
+	if ScriptClosed then
+		return
+	end
+
+	ScriptClosed = true
+
+	-- DESLIGA AIM
+	AimEnabled = false
+
+	-- DESLIGA ESP
+	ESPEnabled = false
+
+	-- REMOVE ESP
+	for _,PlayerTarget in ipairs(Players:GetPlayers()) do
+
+		if PlayerTarget ~= Player then
+			RemoveESP(PlayerTarget)
+		end
+
+	end
+
+	-- REMOVE FOV
+	if FOVCircle then
+		FOVCircle:Destroy()
+	end
+
+	-- REMOVE TODA A GUI
+	if Gui then
+		Gui:Destroy()
+	end
+
+end)
+
+--==================================================
+-- AIM ASSIST
+--==================================================
+
+local function GetClosestPlayer()
+
+	local Closest = nil
+	local ClosestDistance = FOVSize
+
+	local Center = Vector2.new(
+		Camera.ViewportSize.X / 2,
+		Camera.ViewportSize.Y / 2
+	)
+
+	for _,Target in ipairs(Players:GetPlayers()) do
+
+		if Target ~= Player
+		and Target.Character then
+
+			local Humanoid =
+				Target.Character:FindFirstChildOfClass("Humanoid")
+
+			local Head =
+				Target.Character:FindFirstChild("Head")
+
+			if Humanoid
+			and Humanoid.Health > 0
+			and Head then
+
+				local Position,Visible =
+					Camera:WorldToViewportPoint(
+						Head.Position
+					)
+
+				if Visible then
+
+					local ScreenPosition =
+						Vector2.new(
+							Position.X,
+							Position.Y
+						)
+
+					local Distance =
+						(ScreenPosition-Center).Magnitude
+
+					if Distance <= ClosestDistance then
+
+						ClosestDistance = Distance
+						Closest = Head
+
+					end
+
+				end
+
+			end
+
+		end
+
+	end
+
+	return Closest
+
+end
+
+--==================================================
+-- LOOP AIM
+--==================================================
+
+RunService.RenderStepped:Connect(function()
+
+	if ScriptClosed then
+		return
+	end
+
+	if not AimEnabled then
+		return
+	end
+
+	-- IMPORTANTE:
+	-- NÃO verifica Window.Visible.
+	-- Assim o AIM continua funcionando minimizado.
+
+	local Target = GetClosestPlayer()
+
+	if Target then
+
+		local CameraPosition =
+			Camera.CFrame.Position
+
+		local TargetCFrame =
+			CFrame.lookAt(
+				CameraPosition,
+				Target.Position
+			)
+
+		local Strength =
+			Precision / 100
+
+		Camera.CFrame =
+			Camera.CFrame:Lerp(
+				TargetCFrame,
+				Strength
+			)
+
+	end
+
+end)
+
+--==================================================
+-- INICIAR
+--==================================================
+
+UpdateFOV()
+ShowMain()
